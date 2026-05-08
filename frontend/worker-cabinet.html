@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Кабинет сотрудника | Чистый дом</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+    <style>
+        .worker-cabinet { max-width: 1000px; margin: 100px auto 40px; padding: 0 20px; }
+        .worker-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; margin-bottom: 40px; }
+        .stat-card { background: white; border-radius: 24px; padding: 25px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        .stat-value { font-size: 2rem; font-weight: 700; color: #5D4A36; }
+        .shift-item { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; border: 1px solid #e8e0d5; }
+        .shift-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+        .shift-address { background: #f8f5f0; padding: 8px; border-radius: 8px; margin: 10px 0; font-size: 0.9rem; }
+        .status { padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; }
+        .status-completed { background: #e8f5e9; color: #388e3c; }
+        .status-scheduled { background: #e3f2fd; color: #1976d2; }
+        .report-form { background: #f8f5f0; border-radius: 20px; padding: 25px; margin-top: 30px; }
+        .report-form input, .report-form textarea, .report-form select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 15px; }
+        .btn-submit { background: #5D4A36; color: white; border: none; padding: 12px 25px; border-radius: 30px; cursor: pointer; }
+        .review-item { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; border: 1px solid #e8e0d5; }
+        .stars { color: #FFD700; }
+        @media (max-width: 768px) { .stats-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div id="navbar-placeholder"></div>
+<div id="modal-placeholder"></div>
+
+<div class="worker-cabinet">
+    <div class="worker-header">
+        <h1>🧹 Кабинет сотрудника</h1>
+        <button class="login-btn" onclick="logout()" style="background: #cc0000;">Выйти</button>
+    </div>
+    
+    <div class="stats-grid">
+        <div class="stat-card"><div class="stat-value" id="rating">-</div><div class="stat-label">⭐ Рейтинг</div></div>
+        <div class="stat-card"><div class="stat-value" id="earnings">-</div><div class="stat-label">💰 Ставка сотрудника</div></div>
+        <div class="stat-card"><div class="stat-value" id="ordersCount">-</div><div class="stat-label">✅ Выполнено заказов</div></div>
+    </div>
+    
+    <h2>📅 Мои смены</h2>
+    <div id="shiftsContainer">Загрузка...</div>
+    
+    <h2>📸 Загрузить отчёт</h2>
+    <div class="report-form">
+        <select id="reportShiftId">
+            <option value="">-- Выберите смену --</option>
+        </select>
+        <input type="file" id="beforePhoto" accept="image/*">
+        <label>Фото "до"</label>
+        <input type="file" id="afterPhoto" accept="image/*">
+        <label>Фото "после"</label>
+        <textarea id="reportComment" rows="3" placeholder="Комментарий к выполненной работе"></textarea>
+        <button class="btn-submit" onclick="submitReport()">📤 Отправить отчёт</button>
+    </div>
+    
+    <h2>💬 Отзывы о моей работе</h2>
+    <div id="reviewsContainer">Загрузка...</div>
+</div>
+
+<div id="footer-placeholder"></div>
+
+<script src="components/loader.js"></script>
+<script src="script.js"></script>
+<script>
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user || user.role !== 'worker') {
+        window.location.href = 'index.html';
+    }
+    
+    async function loadStats() {
+        try {
+            const res = await fetch(`/api/workers/${user.id}/stats`);
+            const data = await res.json();
+            document.getElementById('rating').textContent = data.rating || 0;
+            document.getElementById('earnings').textContent = (data.total_earnings || 0).toLocaleString() + ' ₽';
+            document.getElementById('ordersCount').textContent = data.orders_count || 0;
+        } catch(e) { console.error(e); }
+    }
+    
+    async function loadShifts() {
+        try {
+            const res = await fetch(`/api/shifts/worker/${user.id}`);
+            const shifts = await res.json();
+            const container = document.getElementById('shiftsContainer');
+            const select = document.getElementById('reportShiftId');
+            
+            if (shifts.length === 0) {
+                container.innerHTML = '<p>Нет назначенных смен</p>';
+                select.innerHTML = '<option value="">-- Нет смен --</option>';
+            } else {
+                container.innerHTML = shifts.map(s => `
+                    <div class="shift-item">
+                        <div class="shift-header">
+                            <span>📅 ${new Date(s.shift_date).toLocaleDateString()}</span>
+                            <span>⏰ ${s.start_time?.substring(0,5)} - ${s.end_time?.substring(0,5)}</span>
+                            <span class="status status-${s.status}">${s.status === 'completed' ? '✅ Выполнена' : '⏳ Запланирована'}</span>
+                        </div>
+                        ${s.address ? `<div class="shift-address">📍 Адрес: ${escapeHtml(s.address)}</div>` : ''}
+                        <div>📋 ${s.description || 'Рабочая смена'}</div>
+                        ${s.order_id ? `<div>📦 Заказ #${s.order_id}</div>` : ''}
+                    </div>
+                `).join('');
+                
+                select.innerHTML = '<option value="">-- Выберите смену --</option>' + 
+                    shifts.filter(s => s.status !== 'completed').map(s => `<option value="${s.id}">${new Date(s.shift_date).toLocaleDateString()} - ${s.description || 'Смена'}${s.address ? ' - ' + s.address.substring(0,30) : ''}</option>`).join('');
+            }
+        } catch(e) { console.error(e); }
+    }
+    
+    async function loadReviews() {
+        try {
+            const res = await fetch(`/api/reviews/worker/${user.id}`);
+            const reviews = await res.json();
+            const container = document.getElementById('reviewsContainer');
+            if (reviews.length === 0) {
+                container.innerHTML = '<p>Нет отзывов</p>';
+            } else {
+                container.innerHTML = reviews.map(r => `
+                    <div class="review-item">
+                        <div class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div>
+                        <p style="margin: 10px 0;">"${escapeHtml(r.comment)}"</p>
+                        <small>${new Date(r.created_at).toLocaleDateString()}</small>
+                        ${r.address ? `<small> - 📍 ${escapeHtml(r.address)}</small>` : ''}
+                    </div>
+                `).join('');
+            }
+        } catch(e) { console.error(e); }
+    }
+    
+    async function submitReport() {
+        const shiftId = document.getElementById('reportShiftId').value;
+        const comment = document.getElementById('reportComment').value;
+        const beforeFile = document.getElementById('beforePhoto').files[0];
+        const afterFile = document.getElementById('afterPhoto').files[0];
+        
+        if (!shiftId) { alert('Выберите смену'); return; }
+        
+        const formData = new FormData();
+        formData.append('shift_id', shiftId);
+        formData.append('comment', comment);
+        if (beforeFile) formData.append('before_photo', beforeFile);
+        if (afterFile) formData.append('after_photo', afterFile);
+        
+        try {
+            const res = await fetch('/api/reports', { method: 'POST', body: formData });
+            if (res.ok) {
+                alert('✅ Отчёт отправлен!');
+                document.getElementById('reportComment').value = '';
+                document.getElementById('beforePhoto').value = '';
+                document.getElementById('afterPhoto').value = '';
+                loadShifts();
+                loadStats();
+            } else {
+                alert('❌ Ошибка отправки');
+            }
+        } catch(e) { alert('Ошибка'); }
+    }
+    
+    function logout() { 
+        localStorage.removeItem('user'); 
+        window.location.href = 'index.html'; 
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+    }
+    
+    loadStats();
+    loadShifts();
+    loadReviews();
+</script>
+</body>
+</html>

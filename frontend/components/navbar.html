@@ -1,0 +1,126 @@
+<!-- components/navbar.html -->
+<nav class="navbar">
+    <div class="container nav-container">
+        <div class="burger-menu" id="burgerMenu">
+            <span></span><span></span><span></span>
+        </div>
+        <ul class="nav-menu" id="navMenu">
+            <li><a href="index.html" class="nav-link">Главная</a></li>
+            <li><a href="index.html#services" class="nav-link">Услуги</a></li>
+            <li><a href="prices.html" class="nav-link">Цены</a></li>
+            <li><a href="index.html#reviews" class="nav-link">Отзывы</a></li>
+            <li><a href="index.html#footer" class="nav-link">Контакты</a></li>
+            <li class="dropdown">
+                <a href="#" class="nav-link" id="employeesLink">Работникам ▼</a>
+                <ul class="dropdown-menu">
+                    <li><a href="schedule.html" class="nav-link">📅 Расписание</a></li>
+                    <li><a href="#" class="nav-link" id="workerLoginBtn">🔐 Личный кабинет</a></li>
+                </ul>
+            </li>
+            <li id="cabinetMenuItem" style="display: none;">
+                <a href="client-cabinet.html" class="nav-link cabinet-link" id="cabinetLink">📋 Личный кабинет</a>
+            </li>
+        </ul>
+    </div>
+</nav>
+
+<style>
+.dropdown { position: relative; }
+.dropdown-menu { 
+    display: none; 
+    position: absolute; 
+    top: 100%; 
+    left: 0; 
+    background: #1a1a1a; 
+    border-radius: 12px; 
+    padding: 10px 0; 
+    min-width: 220px; 
+    z-index: 100; 
+}
+.dropdown:hover .dropdown-menu { display: block; }
+.dropdown-menu li { 
+    list-style: none; 
+    padding: 10px 20px; 
+}
+.dropdown-menu li:hover { 
+    background: #333; 
+    border-radius: 8px; 
+}
+.dropdown-menu a { 
+    color: white; 
+    text-decoration: none; 
+    display: block; 
+}
+
+/* Стиль для кнопки Личный кабинет в меню */
+.cabinet-link {
+    background: #FFE74A !important;
+    color: #1a1a1a !important;
+    padding: 8px 20px !important;
+    border-radius: 30px !important;
+    font-weight: 600 !important;
+    margin-left: 10px !important;
+    transition: all 0.3s ease !important;
+}
+.cabinet-link:hover {
+    background: #f0d83a !important;
+    transform: translateY(-2px) !important;
+    color: #1a1a1a !important;
+}
+
+@media (max-width: 768px) {
+    .dropdown-menu { 
+        position: static; 
+        display: none; 
+        background: #2a2a2a; 
+        margin-left: 20px; 
+    }
+    .dropdown.active .dropdown-menu { display: block; }
+    .cabinet-link {
+        display: inline-block !important;
+        margin: 10px 0 !important;
+        text-align: center !important;
+    }
+    #cabinetMenuItem {
+        width: 100%;
+        text-align: center;
+    }
+}
+</style>
+
+<script>
+// Функция обновления видимости кнопки "Личный кабинет" в меню
+function updateCabinetButton() {
+    const client = localStorage.getItem('client');
+    const cabinetMenuItem = document.getElementById('cabinetMenuItem');
+    
+    if (cabinetMenuItem) {
+        if (client) {
+            cabinetMenuItem.style.display = 'list-item';
+            console.log('✅ Кнопка "Личный кабинет" показана в меню');
+        } else {
+            cabinetMenuItem.style.display = 'none';
+            console.log('❌ Кнопка "Личный кабинет" скрыта в меню');
+        }
+    } else {
+        console.log('Элемент cabinetMenuItem не найден');
+    }
+}
+
+// Запускаем при загрузке
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', updateCabinetButton);
+} else {
+    updateCabinetButton();
+}
+
+// Слушаем изменения localStorage
+window.addEventListener('storage', function(e) {
+    if (e.key === 'client') {
+        updateCabinetButton();
+    }
+});
+
+// Делаем функцию глобальной
+window.updateCabinetButton = updateCabinetButton;
+</script>
