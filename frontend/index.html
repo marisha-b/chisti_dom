@@ -20,13 +20,13 @@
         <div class="container top-bar-container">
             <div class="top-bar-left-group">
                 <div class="top-bar-left">
-                    <img src="img/логотип.png" alt="Чистый дом" class="logo-img">
+                    <img loading="lazy" src="img/логотип.png" alt="Чистый дом" class="logo-img">
                     <span class="company-name">Чистый дом</span>
                 </div>
                 <div class="social-icons">
-                    <a href="#" class="social-link"><img src="img/telegram.png" alt="Telegram"></a>
-                    <a href="#" class="social-link"><img src="img/whatsapp.png" alt="WhatsApp"></a>
-                    <a href="#" class="social-link"><img src="img/vk.png" alt="VK"></a>
+                    <a href="#" class="social-link"><img loading="lazy" src="img/telegram.png" alt="Telegram"></a>
+                    <a href="#" class="social-link"><img loading="lazy" src="img/whatsapp.png" alt="WhatsApp"></a>
+                    <a href="#" class="social-link"><img loading="lazy" src="img/vk.png" alt="VK"></a>
                 </div>
             </div>
             <div class="top-bar-right-group">
@@ -34,7 +34,6 @@
                     <div class="phone">+7 (950) 088 46 94</div>
                     <div class="email">info@chistidom.ru</div>
                 </div>
-                <button class="login-btn" id="headerLoginBtn">Войти</button>
             </div>
         </div>
     </div>
@@ -70,22 +69,22 @@
         <h2>Почему нас выбирают?</h2>
         <div class="advantages__grid">
             <div class="advantage">
-                <img src="img/прозрачно.png" alt="Прозрачно" class="advantage-icon">
+                <img loading="lazy" src="img/прозрачно.png" alt="Прозрачно" class="advantage-icon">
                 <h4>Прозрачно</h4>
                 <p>Точная цена до начала работы, никаких доплат.</p>
             </div>
             <div class="advantage">
-                <img src="img/безопасно.png" alt="Безопасно" class="advantage-icon">
+                <img loading="lazy" src="img/безопасно.png" alt="Безопасно" class="advantage-icon">
                 <h4>Безопасно</h4>
                 <p>Все сотрудники оформлены и проверены.</p>
             </div>
             <div class="advantage">
-                <img src="img/качественно.png" alt="Качественно" class="advantage-icon">
+                <img loading="lazy" src="img/качественно.png" alt="Качественно" class="advantage-icon">
                 <h4>Качественно</h4>
                 <p>Используем профессиональную химию.</p>
             </div>
             <div class="advantage">
-                <img src="img/удобно.png" alt="Удобно" class="advantage-icon">
+                <img loading="lazy" src="img/удобно.png" alt="Удобно" class="advantage-icon">
                 <h4>Удобно</h4>
                 <p>Онлайн-заявка, фотоотчет, оплата картой.</p>
             </div>
@@ -118,85 +117,21 @@
 <script src="script.js"></script>
 
 <script>
-// ========== УПРАВЛЕНИЕ КНОПКОЙ ВХОДА/ВЫХОДА В ШАПКЕ ==========
-function updateHeaderButton() {
-    const client = localStorage.getItem('client');
-    const btn = document.getElementById('headerLoginBtn');
-    
-    if (!btn) return;
-    
-    if (client) {
-        try {
-            const clientData = JSON.parse(client);
-            const userName = clientData.name || clientData.full_name || 'Клиент';
-            btn.textContent = `👤 ${userName}`;
-            btn.style.background = '#8B7355';
-            btn.style.border = 'none';
-            btn.onclick = function() {
-                window.location.href = 'client-cabinet.html';
-            };
-        } catch(e) {
-            console.error(e);
-        }
-    } else {
-        btn.textContent = 'Войти';
-        btn.style.background = 'rgba(255, 255, 255, 0.15)';
-        btn.style.border = '2px solid white';
-        btn.onclick = function() {
-            const modal = document.getElementById('clientModal');
-            if (modal) {
-                modal.classList.add('active');
-                const loginForm = document.getElementById('clientLoginForm');
-                const registerForm = document.getElementById('clientRegisterForm');
-                if (loginForm) loginForm.style.display = 'block';
-                if (registerForm) registerForm.style.display = 'none';
+document.addEventListener('DOMContentLoaded', function() {
+    const orderBtn = document.getElementById('mainOrderBtn');
+    if (orderBtn) {
+        orderBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const client = localStorage.getItem('client');
+            if (!client) {
+                const modal = document.getElementById('clientModal');
+                if (modal) modal.classList.add('active');
+            } else {
+                window.location.href = 'order.html';
             }
-        };
-    }
-}
-
-// Кнопка заказа
-const orderBtn = document.getElementById('mainOrderBtn');
-if (orderBtn) {
-    orderBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        const client = localStorage.getItem('client');
-        if (!client) {
-            const modal = document.getElementById('clientModal');
-            if (modal) modal.classList.add('active');
-        } else {
-            window.location.href = 'order.html';
-        }
-    });
-}
-
-// Обновляем кнопку в меню после входа/выхода
-function refreshCabinetButton() {
-    if (typeof window.updateCabinetButton === 'function') {
-        window.updateCabinetButton();
-    }
-}
-
-// Запускаем обновление кнопок
-updateHeaderButton();
-refreshCabinetButton();
-
-// Слушаем изменения в localStorage
-window.addEventListener('storage', function(e) {
-    if (e.key === 'client') {
-        updateHeaderButton();
-        refreshCabinetButton();
+        });
     }
 });
-
-// Также обновляем после входа/выхода (для текущей вкладки)
-window.updateHeaderButton = updateHeaderButton;
-
-// Повторное обновление через 1 секунду для надежности
-setTimeout(function() {
-    updateHeaderButton();
-    refreshCabinetButton();
-}, 1000);
 </script>
 
 </body>

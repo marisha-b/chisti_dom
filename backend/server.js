@@ -2,19 +2,53 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
+const NodeCache = require('node-cache');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Создаём кэш с временем жизни 5 минут (300 секунд)
+const cache = new NodeCache({ stdTTL: 300, checkperiod: 60 });
 
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Middleware для кэширования GET запросов
+app.use('/api', (req, res, next) => {
+    // Кэшируем только GET запросы
+    if (req.method === 'GET') {
+        const cacheKey = req.originalUrl;
+        const cachedData = cache.get(cacheKey);
+        
+        if (cachedData) {
+            console.log(`📦 Cache HIT: ${cacheKey}`);
+            return res.json(cachedData);
+        }
+        
+        // Сохраняем оригинальный res.json
+        const originalJson = res.json;
+        res.json = function(data) {
+            // Сохраняем в кэш
+            cache.set(cacheKey, data);
+            console.log(`💾 Cache SET: ${cacheKey}`);
+            originalJson.call(this, data);
+        };
+    }
+    next();
+});
+
+// Настройка кэширования статических файлов
+const staticOptions = {
+    maxAge: '1d', // кэшировать на 1 день
+    immutable: true
+};
+
 // Раздаем статические файлы
-app.use(express.static(path.join(__dirname, '../frontend')));
-app.use(express.static(path.join(__dirname, '../frontend/components')));
-app.use(express.static(path.join(__dirname, '../')));
-app.use(express.static(path.join(__dirname, './')));
+app.use(express.static(path.join(__dirname, '../frontend'), staticOptions));
+app.use(express.static(path.join(__dirname, '../frontend/components'), staticOptions));
+app.use(express.static(path.join(__dirname, '../'), staticOptions));
+app.use(express.static(path.join(__dirname, './'), staticOptions));
 
 // ========== МАРШРУТЫ API ==========
 app.use('/api/services', require('./routes/services'));
@@ -26,6 +60,13 @@ app.use('/api/workers', require('./routes/workers'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/reports', require('./routes/reports'));
+
+// Маршрут для очистки кэша (для админов)
+app.post('/api/cache/clear', async (req, res) => {
+    cache.flushAll();
+    console.log('🗑️ Cache cleared');
+    res.json({ success: true, message: 'Кэш очищен' });
+});
 
 // ========== HTML СТРАНИЦЫ ==========
 app.get('/', (req, res) => {
@@ -67,6 +108,7 @@ app.get('/client-cabinet.html', (req, res) => {
 // ========== ЗАПУСК СЕРВЕРА ==========
 app.listen(PORT, () => {
     console.log(`✅ Сервер запущен на http://localhost:${PORT}`);
+    console.log(`📦 Кэш включён, TTL: 300 секунд`);
     console.log(`📦 Доступные страницы:`);
     console.log(`   - http://localhost:${PORT}/`);
     console.log(`   - http://localhost:${PORT}/admin-cabinet.html`);

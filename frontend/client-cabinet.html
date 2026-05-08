@@ -104,12 +104,10 @@
         <button class="tab-btn" data-tab="reviews">⭐ Мои отзывы</button>
     </div>
     
-    <!-- Заказы -->
     <div id="ordersPanel" class="tab-panel active">
         <div id="ordersContainer">Загрузка заказов...</div>
     </div>
     
-    <!-- Мои отзывы -->
     <div id="reviewsPanel" class="tab-panel">
         <div id="myReviewsContainer">Загрузка...</div>
     </div>
@@ -117,7 +115,6 @@
 
 <div id="footer-placeholder"></div>
 
-<!-- Модальное окно для фото -->
 <div id="photoModal" class="modal-overlay" onclick="closePhotoModal()">
     <div class="modal-content" onclick="event.stopPropagation()">
         <img id="modalPhoto" src="" alt="Фото отчёта">
@@ -127,7 +124,6 @@
 
 <script src="components/loader.js"></script>
 <script>
-    // Проверка авторизации
     let currentClient = JSON.parse(localStorage.getItem('client'));
     if (!currentClient) {
         window.location.href = 'index.html';
@@ -136,7 +132,6 @@
     const clientName = currentClient.name || currentClient.full_name || 'Клиент';
     document.getElementById('clientInfo').innerHTML = `${escapeHtml(clientName)}<br>📞 ${escapeHtml(currentClient.phone)}`;
     
-    // Переключение вкладок
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.onclick = () => {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -155,7 +150,6 @@
         return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
     }
     
-    // Загрузка заказов
     async function loadOrders() {
         try {
             const container = document.getElementById('ordersContainer');
@@ -206,7 +200,6 @@
             const detailsDiv = document.getElementById(`details-content-${orderId}`);
             if (!detailsDiv) return;
             
-            // Услуги
             let servicesHtml = '<div class="services-list" onclick="event.stopPropagation()"><strong>🧹 Услуги:</strong>';
             if (data.services && data.services.length > 0) {
                 data.services.forEach(s => {
@@ -217,7 +210,6 @@
             }
             servicesHtml += '</div>';
             
-            // Сотрудники
             let workersHtml = '';
             if (data.workers && data.workers.length > 0) {
                 workersHtml = '<div class="services-list" onclick="event.stopPropagation()"><strong>👨‍🔧 Исполнители:</strong>';
@@ -227,7 +219,6 @@
                 workersHtml += '</div>';
             }
             
-            // Отчёты
             let reportsHtml = '';
             if (data.reports && data.reports.length > 0) {
                 reportsHtml = '<div class="services-list" onclick="event.stopPropagation()"><strong>📸 Отчёты по работе:</strong>';
@@ -237,31 +228,26 @@
                             <div><strong>👤 Сотрудник:</strong> ${escapeHtml(r.worker_name)}</div>
                             <div><strong>📅 Дата:</strong> ${new Date(r.shift_date).toLocaleDateString()}</div>
                             <div><strong>💬 Комментарий:</strong> ${escapeHtml(r.comment || 'Без комментария')}</div>
-                            ${r.before_photo_url ? `<img src="${r.before_photo_url}" class="report-photo" onclick="event.stopPropagation(); showPhoto('${r.before_photo_url}')">` : ''}
-                            ${r.after_photo_url ? `<img src="${r.after_photo_url}" class="report-photo" onclick="event.stopPropagation(); showPhoto('${r.after_photo_url}')">` : ''}
+                            ${r.before_photo_url ? `<img loading="lazy" src="${r.before_photo_url}" class="report-photo" onclick="event.stopPropagation(); showPhoto('${r.before_photo_url}')">` : ''}
+                            ${r.after_photo_url ? `<img loading="lazy" src="${r.after_photo_url}" class="report-photo" onclick="event.stopPropagation(); showPhoto('${r.after_photo_url}')">` : ''}
                         </div>
                     `;
                 });
                 reportsHtml += '</div>';
             }
             
-            // Проверяем, есть ли уже отзыв от этого клиента на этот заказ
             let existingReview = null;
             try {
                 const reviewRes = await fetch(`/api/reviews/check?order_id=${orderId}&client_id=${currentClient.id}`);
                 if (reviewRes.ok) {
                     existingReview = await reviewRes.json();
                 }
-            } catch(e) {
-                console.error('Ошибка проверки отзыва:', e);
-            }
+            } catch(e) {}
             
             let reviewHtml = '';
             
-            // Если заказ выполнен
             if (orderStatus === 'completed') {
                 if (existingReview && existingReview.id) {
-                    // Уже есть отзыв - показываем его
                     reviewHtml = `
                         <div class="existing-review" onclick="event.stopPropagation()">
                             <div class="review-thanks">✅ Спасибо за ваш отзыв!</div>
@@ -276,7 +262,6 @@
                         </div>
                     `;
                 } else if (data.workers && data.workers.length > 0) {
-                    // Нет отзыва - показываем форму
                     const worker = data.workers[0];
                     reviewHtml = `
                         <div class="review-section" id="review-form-${orderId}" onclick="event.stopPropagation()">
@@ -326,8 +311,6 @@
         const rating = selectedRating.value;
         const comment = document.getElementById(`review-text-${orderId}`).value;
         
-        console.log('Отправка отзыва:', { orderId, workerId, rating, comment, clientId: currentClient.id });
-        
         if (!rating) {
             alert('Пожалуйста, поставьте оценку');
             return;
@@ -356,9 +339,7 @@
             
             if (res.ok) {
                 alert('✅ Спасибо за ваш отзыв!');
-                // Обновляем детали заказа, чтобы показать уже оставленный отзыв
                 loadOrderDetails(orderId, 'completed');
-                // Обновляем список отзывов, если открыта вкладка
                 if (document.querySelector('.tab-btn.active').dataset.tab === 'reviews') {
                     loadMyReviews();
                 }
@@ -367,8 +348,8 @@
                 alert('❌ Ошибка: ' + (data.error || 'Не удалось отправить отзыв'));
             }
         } catch(e) {
-            console.error('Ошибка:', e);
-            alert('Ошибка соединения: ' + e.message);
+            console.error(e);
+            alert('Ошибка соединения');
         } finally {
             if (submitBtn) {
                 submitBtn.disabled = false;
@@ -441,7 +422,6 @@
     
     loadOrders();
     
-    // Бургер-меню
     const burger = document.getElementById('burgerMenu');
     const menu = document.getElementById('navMenu');
     if (burger && menu) {

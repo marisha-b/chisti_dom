@@ -39,11 +39,12 @@
         .data-table th { background: #5D4A36; color: white; font-weight: 500; }
         .data-table tr:hover { background: #f8f5f0; }
         
-        .btn-assign { background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; }
-        .btn-assign:hover { background: #45a049; transform: scale(1.02); }
+        .btn-assign { background: #4CAF50; color: white; border: none; padding: 5px 12px; border-radius: 15px; cursor: pointer; margin-right: 5px; }
+        .btn-assign:hover { background: #45a049; transform: scale(1.05); }
         .btn-view { background: #2196F3; color: white; border: none; padding: 5px 12px; border-radius: 15px; cursor: pointer; }
-        .btn-view:hover { background: #1976D2; }
+        .btn-view:hover { background: #1976D2; transform: scale(1.05); }
         .btn-photo { background: #8B7355; color: white; border: none; padding: 5px 10px; border-radius: 15px; cursor: pointer; font-size: 0.75rem; }
+        .btn-photo:hover { background: #5D4A36; }
         .btn-reply { background: #FF9800; color: white; border: none; padding: 5px 12px; border-radius: 15px; cursor: pointer; }
         
         .badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; }
@@ -138,7 +139,6 @@
     </div>
 </div>
 
-<!-- Модальное окно назначения сотрудника (упрощённое) -->
 <div id="assignModal" class="assign-modal">
     <div class="assign-modal-content">
         <h3>👨‍🔧 Назначить сотрудника</h3>
@@ -157,7 +157,6 @@
     </div>
 </div>
 
-<!-- Модальное окно для фото -->
 <div id="photoModal" class="photo-modal" onclick="closePhotoModal()">
     <div class="photo-modal-content" onclick="event.stopPropagation()">
         <img id="modalPhoto" src="" alt="Фото">
@@ -184,7 +183,6 @@
         return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
     }
     
-    // Загрузка новых заказов
     async function loadNewOrders() {
         try {
             const res = await fetch('/api/orders/new-orders');
@@ -199,7 +197,7 @@
             
             let html = '<table class="data-table"><thead><tr>';
             html += '<th>ID</th><th>Клиент</th><th>Телефон</th><th>Адрес</th><th>Дата</th><th>Время</th><th>Сумма</th><th>Действия</th>';
-            html += '</tr></thead><tbody>';
+            html += '</table></thead><tbody>';
             
             orders.forEach(order => {
                 html += `<tr>
@@ -222,7 +220,6 @@
         }
     }
     
-    // Загрузка всех заказов
     async function loadAllOrders() {
         try {
             const res = await fetch('/api/orders/all-orders');
@@ -273,7 +270,6 @@
         }
     }
     
-    // Загрузка отчётов
     async function loadAllReports() {
         try {
             const res = await fetch('/api/reports/all');
@@ -288,12 +284,12 @@
             
             let html = '<table class="data-table"><thead><tr>';
             html += '<th>ID</th><th>Сотрудник</th><th>Заказ</th><th>Адрес</th><th>Дата</th><th>Комментарий</th><th>Фото</th>';
-            html += '</tr></thead><tbody>';
+            html += '<tr></thead><tbody>';
             
             reports.forEach(r => {
                 let photos = '';
-                if (r.before_photo_url) photos += `<img src="${r.before_photo_url}" class="photo-thumb" onclick="showPhoto('${r.before_photo_url}')" title="Фото до"> `;
-                if (r.after_photo_url) photos += `<img src="${r.after_photo_url}" class="photo-thumb" onclick="showPhoto('${r.after_photo_url}')" title="Фото после"> `;
+                if (r.before_photo_url) photos += `<img loading="lazy" src="${r.before_photo_url}" class="photo-thumb" onclick="showPhoto('${r.before_photo_url}')" title="Фото до"> `;
+                if (r.after_photo_url) photos += `<img loading="lazy" src="${r.after_photo_url}" class="photo-thumb" onclick="showPhoto('${r.after_photo_url}')" title="Фото после"> `;
                 if (!photos) photos = '-';
                 
                 html += `<tr>
@@ -315,7 +311,6 @@
         }
     }
     
-    // Загрузка отзывов
     async function loadAllReviews() {
         try {
             const res = await fetch('/api/reviews');
@@ -354,7 +349,6 @@
         }
     }
     
-    // Ответить на отзыв
     async function replyToReview(reviewId) {
         const reply = prompt('Введите ответ на отзыв:');
         if (reply && reply.trim()) {
@@ -377,7 +371,6 @@
         }
     }
     
-    // Загрузка сотрудников для назначения
     async function loadWorkersForAssign() {
         try {
             const res = await fetch('/api/workers/list');
@@ -390,13 +383,11 @@
         } catch(e) { console.error(e); }
     }
     
-    // Открыть модалку назначения с информацией о заказе
     async function openAssignModal(orderId) {
         document.getElementById('assignOrderId').value = orderId;
         document.getElementById('orderInfo').innerHTML = 'Загрузка информации о заказе...';
         document.getElementById('assignModal').classList.add('active');
         
-        // Загружаем информацию о заказе
         try {
             const res = await fetch(`/api/orders/details/${orderId}`);
             const data = await res.json();
@@ -496,7 +487,6 @@
         modal.classList.remove('active');
     }
     
-    // Переключение вкладок
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));

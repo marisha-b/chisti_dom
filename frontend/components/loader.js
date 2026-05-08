@@ -114,7 +114,6 @@ function initClientModal() {
                     alert(`Добро пожаловать, ${data.user.name || data.user.full_name}!`);
                     modal.classList.remove('active');
                     
-                    // Обновляем кнопки в меню и шапке
                     if (typeof window.updateCabinetButton === 'function') {
                         window.updateCabinetButton();
                     }
@@ -176,7 +175,6 @@ function initClientModal() {
                     if (registerForm) registerForm.style.display = 'none';
                     const phoneInput = document.getElementById('clientPhoneLogin');
                     if (phoneInput) phoneInput.value = phone;
-                    // Очищаем поля
                     document.getElementById('registerName').value = '';
                     document.getElementById('registerPhone').value = '';
                     document.getElementById('registerEmail').value = '';

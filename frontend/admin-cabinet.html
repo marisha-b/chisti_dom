@@ -51,6 +51,8 @@
         .btn-delete:hover { background: #d32f2f; transform: scale(1.05); }
         .btn-reply { background: #4CAF50; color: white; border: none; padding: 5px 12px; border-radius: 15px; cursor: pointer; margin-right: 5px; transition: all 0.3s; }
         .btn-reply:hover { background: #45a049; transform: scale(1.05); }
+        .btn-cache { background: #8B7355; color: white; border: none; padding: 10px 25px; border-radius: 25px; cursor: pointer; transition: all 0.3s; }
+        .btn-cache:hover { background: #5D4A36; transform: translateY(-2px); }
         
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
         .modal.active { display: flex; }
@@ -94,7 +96,6 @@
         .rating-chart-bar { background: #e8e0d5; border-radius: 10px; height: 40px; overflow: hidden; }
         .rating-chart-fill { height: 100%; display: flex; align-items: center; justify-content: flex-end; padding-right: 10px; color: white; font-weight: 600; border-radius: 10px; transition: width 0.5s ease; }
         
-        /* Стили для модального окна календаря */
         .shifts-modal-overlay {
             position: fixed;
             top: 0;
@@ -172,7 +173,6 @@
         
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* Стили для заголовка с кнопкой */
         .section-header {
             display: flex;
             align-items: center;
@@ -201,7 +201,10 @@
 <div class="admin-cabinet">
     <div class="admin-header">
         <h1>👑 Админ-панель</h1>
-        <button class="btn-add" onclick="logout()" style="background: #cc0000;">Выйти</button>
+        <div>
+            <button class="btn-cache" onclick="clearCache()">🗑️ Очистить кэш</button>
+            <button class="btn-add" onclick="logout()" style="background: #cc0000;">Выйти</button>
+        </div>
     </div>
     
     <div class="stats-grid" id="statsGrid">
@@ -258,7 +261,7 @@
         </div>
         <table class="services-table">
             <thead>
-                <tr><th>ID</th><th>Название</th><th>Категория</th><th>Цена</th><th>Действия</th></tr>
+                <table><th>ID</th><th>Название</th><th>Категория</th><th>Цена</th><th>Действия</th></tr>
             </thead>
             <tbody id="servicesTableBody"></tbody>
         </table>
@@ -266,12 +269,10 @@
     
     <!-- Сотрудники -->
     <div id="employeesPanel" class="tab-panel">
-        <!-- Рейтинг сотрудников -->
         <div class="employee-rating-chart">
             <div id="employeesRatingChart"></div>
         </div>
         
-        <!-- Заголовок и кнопка добавления сотрудника -->
         <div class="section-header">
             <button class="btn-add" id="addEmployeeBtn">+ Добавить сотрудника</button>
             <h3 style="color: #5D4A36; margin: 0;">📋 Список сотрудников</h3>
@@ -388,6 +389,25 @@
             }
         };
     });
+    
+    // Очистка кэша
+    async function clearCache() {
+        try {
+            const res = await fetch('/api/cache/clear', { method: 'POST' });
+            if (res.ok) {
+                if (window.apiCache) {
+                    window.apiCache.clear();
+                }
+                alert('✅ Кэш очищен');
+                location.reload();
+            } else {
+                alert('❌ Ошибка очистки кэша');
+            }
+        } catch(e) {
+            console.error(e);
+            alert('Ошибка: ' + e.message);
+        }
+    }
     
     // ========== СТАТИСТИКА ==========
     async function loadStats() {
@@ -729,9 +749,13 @@
             const users = await res.json();
             const tbody = document.getElementById('employeesTableBody');
             tbody.innerHTML = users.filter(u => u.role !== 'admin').map(u => `
-                <tr><td>${u.id}</td><td>${escapeHtml(u.full_name)}</td><td>${escapeHtml(u.phone)}</td>
-                <td>${u.role === 'worker' ? '👨‍🔧 Сотрудник' : '📋 Менеджер'}</td>
-                <td><button class="btn-edit" onclick="editEmployee(${u.id})">✏️</button><button class="btn-delete" onclick="deleteEmployee(${u.id})">🗑️</button></td>
+                <tr>
+                    <td>${u.id}</td>
+                    <td>${escapeHtml(u.full_name)}</td>
+                    <td>${escapeHtml(u.phone)}</td>
+                    <td>${u.role === 'worker' ? '👨‍🔧 Сотрудник' : '📋 Менеджер'}</td>
+                    <td><button class="btn-edit" onclick="editEmployee(${u.id})">✏️</button><button class="btn-delete" onclick="deleteEmployee(${u.id})">🗑️</button></td>
+                </tr>
             `).join('');
         } catch(e) { console.error(e); }
     }
@@ -757,77 +781,71 @@
         }
     }
     
-async function saveEmployee() {
-    const id = document.getElementById('employeeId').value;
-    let full_name = document.getElementById('employeeName').value.trim();
-    let phone = document.getElementById('employeePhone').value.trim();
-    const role = document.getElementById('employeeRole').value;
-    const password = document.getElementById('employeePassword').value;
-    
-    console.log('Отправка данных:', { id, full_name, phone, role, password: password ? '***' : 'пусто' });
-    
-    // Проверка на пустые поля
-    if (!full_name) {
-        alert('Введите имя сотрудника');
-        return;
-    }
-    if (!phone) {
-        alert('Введите телефон');
-        return;
-    }
-    if (!password && !id) {
-        alert('Введите пароль');
-        return;
-    }
-    if (!role) {
-        alert('Выберите роль');
-        return;
-    }
-    
-    // Очищаем телефон от лишних символов, оставляем только цифры и +
-    let cleanPhone = phone.replace(/\s/g, '');
-    if (!cleanPhone.startsWith('+')) {
-        cleanPhone = '+' + cleanPhone.replace(/\D/g, '');
-    }
-    console.log('Телефон после очистки:', cleanPhone);
-    
-    const employee = {
-        full_name: full_name,
-        phone: cleanPhone,
-        role: role,
-        password: password
-    };
-    
-    const url = id ? `/api/users/${id}` : '/api/users';
-    const method = id ? 'PUT' : 'POST';
-    
-    try {
-        const res = await fetch(url, { 
-            method, 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify(employee) 
-        });
+    async function saveEmployee() {
+        const id = document.getElementById('employeeId').value;
+        const full_name = document.getElementById('employeeName').value.trim();
+        const phone = document.getElementById('employeePhone').value.trim();
+        const role = document.getElementById('employeeRole').value;
+        const password = document.getElementById('employeePassword').value;
         
-        const result = await res.json();
-        console.log('Ответ сервера:', result);
+        console.log('Отправка данных:', { id, full_name, phone, role, password: password ? '***' : 'пусто' });
         
-        if (res.ok) {
-            alert(id ? '✅ Сотрудник обновлён' : '✅ Сотрудник добавлен');
-            closeEmployeeModal();
-            loadEmployees();
-            loadStats();
-            loadWorkersRating();
-            loadEmployeesRatingChart();
-            // Очищаем поле пароля
-            document.getElementById('employeePassword').value = '';
-        } else {
-            alert('❌ Ошибка: ' + (result.error || 'Неизвестная ошибка'));
+        if (!full_name) {
+            alert('Введите имя сотрудника');
+            return;
         }
-    } catch(e) {
-        console.error('Ошибка:', e);
-        alert('❌ Ошибка соединения: ' + e.message);
+        if (!phone) {
+            alert('Введите телефон');
+            return;
+        }
+        if (!password && !id) {
+            alert('Введите пароль');
+            return;
+        }
+        if (!role) {
+            alert('Выберите роль');
+            return;
+        }
+        
+        const employee = {
+            full_name: full_name,
+            phone: phone,
+            role: role,
+            password: password
+        };
+        
+        const url = id ? `/api/users/${id}` : '/api/users';
+        const method = id ? 'PUT' : 'POST';
+        
+        try {
+            const res = await fetch(url, { 
+                method, 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(employee) 
+            });
+            
+            const result = await res.json();
+            console.log('Ответ сервера:', result);
+            
+            if (res.ok) {
+                alert(id ? '✅ Сотрудник обновлён' : '✅ Сотрудник добавлен');
+                closeEmployeeModal();
+                loadEmployees();
+                loadStats();
+                loadWorkersRating();
+                loadEmployeesRatingChart();
+                // Очищаем кэш после изменения
+                if (window.apiCache) {
+                    window.apiCache.clear();
+                }
+            } else {
+                alert('❌ Ошибка: ' + (result.error || 'Неизвестная ошибка'));
+            }
+        } catch(e) {
+            console.error('Ошибка:', e);
+            alert('❌ Ошибка соединения: ' + e.message);
+        }
     }
-}
     
     function closeEmployeeModal() {
         document.getElementById('employeeModal').classList.remove('active');
@@ -888,7 +906,7 @@ async function saveEmployee() {
                         </div>
                         <div style="overflow-x: auto;">
                             <table class="shifts-schedule-table">
-                                <thead><tr><th style="min-width: 150px;">Сотрудник</th>${weekDates.map((wd, idx) => `<th>${weekDays[idx]}<br>${wd.display}</th>`).join('')}</tr></thead>
+                                <thead><tr><th style="min-width: 150px;">Сотрудник</th>${weekDates.map((wd, idx) => `<th>${weekDays[idx]}<br>${wd.display}</th>`).join('')}<! transduction </thead>
                                 <tbody>
             `;
             
@@ -912,7 +930,7 @@ async function saveEmployee() {
             
             html += `
                                 </tbody>
-                            </table>
+                             </table>
                         </div>
                         <div class="shifts-modal-footer">
                             <button class="btn-add" onclick="closeShiftsModal()" style="background: #5D4A36;">Закрыть</button>
@@ -944,11 +962,9 @@ async function saveEmployee() {
     document.getElementById('addServiceBtn').onclick = () => document.getElementById('serviceModal').classList.add('active');
     document.getElementById('addEmployeeBtn').onclick = () => document.getElementById('employeeModal').classList.add('active');
     
-    // Клик на карточку смен
     const shiftsCard = document.getElementById('shiftsCard');
     if (shiftsCard) shiftsCard.addEventListener('click', openShiftsCalendar);
     
-    // Бургер-меню
     const burger = document.getElementById('burgerMenu');
     const menu = document.getElementById('navMenu');
     if (burger && menu) {

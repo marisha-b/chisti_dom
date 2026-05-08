@@ -166,7 +166,6 @@
         const client = localStorage.getItem('client');
         if (client) {
             const clientData = JSON.parse(client);
-            console.log('Загружен клиент:', clientData);
             const clientName = clientData.name || clientData.full_name || '';
             document.getElementById('clientName').value = clientName;
             document.getElementById('clientPhone').value = clientData.phone || '';
